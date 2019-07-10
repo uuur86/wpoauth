@@ -8,7 +8,7 @@
  * @package wpoauth
  * @license GPLv2 or later
  * @author Uğur Biçer <uuur86@yandex.com>
- * @version 0.11
+ * @version 0.12
  */
 
 namespace WPOauth;
@@ -62,6 +62,7 @@ abstract class OAuth {
 		$this->redirect_uri		= urlencode( $this->oauth_callback_url() );
 
 		$this->all_args = $args;
+		$this->all_args[ 'redirect_uri' ] = $this->redirect_uri;
 	}
 
 
@@ -152,14 +153,13 @@ abstract class OAuth {
 	 */
 	public function authorize_link() {
 
-		if( empty( $this->api_id ) || empty( $this->api_secret ) )
-			return false;
+		if( empty( $this->api_id ) || empty( $this->api_secret ) ) return false;
 
 		$admin_post_url = admin_url( 'admin-post.php', 'https' );
 
 		$html = '<form method="post" action="' . $admin_post_url . '">';
 		$html .= '	<input type="hidden" name="action" value="' . $this->settings_name . '_authorize"/>';
-		$html .= '	' . wp_nonce_field( $this->settings_name . '_authorize', $this->settings_name . '_authorize_nonce' );
+		$html .= '	' . wp_nonce_field( $this->settings_name . '_authorize', $this->settings_name . '_authorize_nonce', true, false );
 		$html .= '	<input type="submit" value="Authorize" name="' . $this->settings_name . '_authorize"/>';
 		$html .= '</form>';
 
