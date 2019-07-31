@@ -8,7 +8,7 @@
  * @package wpoauth
  * @license GPLv2 or later
  * @author Uğur Biçer <uuur86@yandex.com>
- * @version 0.12
+ * @version 0.14
  */
 
 namespace WPOauth;
@@ -54,7 +54,6 @@ abstract class OAuth {
 		$this->settings_name	= $args[ 'settings_name' ];
 		$this->oauth_url		= $args[ 'oauth_url' ];
 		$this->locate_domain	= $args[ 'locate_domain' ];
-		$this->settings_name	= $args[ 'settings_name' ];
 		$this->api_secret		= $args[ 'client_secret' ];
 		$this->api_id			= $args[ 'client_id' ];
 		$this->request_args		= $args[ 'request_args' ];
@@ -69,8 +68,6 @@ abstract class OAuth {
 
 	/**
 	 * @param string $id
-	 *
-	 * @return void
 	 */
 	public function set_id( $id ) {
 		if( !empty( $id ) ) $this->api_id = $id;
@@ -80,8 +77,6 @@ abstract class OAuth {
 
 	/**
 	 * @param string $secret
-	 *
-	 * @return void
 	 */
 	public function set_secret( $secret ) {
 		if( !empty( $secret ) ) $this->api_secret = $secret;
@@ -98,7 +93,7 @@ abstract class OAuth {
 	 */
 	public function get_remote_api_data( $service, $args, $post = false ) {
 
-		if( ( $url = $this->generate_api_url( $service, $args ) ) !== false ) {
+		if( ( $url = $this->_generate_api_url( $service, $args ) ) !== false ) {
 
 			if( $post !== false ) {
 				$post_args = array(
@@ -137,7 +132,7 @@ abstract class OAuth {
 	 *
 	 * @return bool|string
 	 */
-	protected function generate_api_url( $path, $args = array() ) {
+	protected function _generate_api_url( $path, $args = array() ) {
 
 		if( empty( $path ) ) return false;
 
@@ -170,8 +165,6 @@ abstract class OAuth {
 
 	/**
 	 * This method will redirect URI to particular OAuth dialog
-	 *
-	 * @return void
 	 */
 	public function authorize_request() {
 
@@ -180,14 +173,14 @@ abstract class OAuth {
 		if( !empty( $_POST ) && wp_verify_nonce( $_POST[ $this->settings_name . '_authorize_nonce' ], $this->settings_name . '_authorize' ) ) {
 			$get_args = [];
 
-			$args = $this->fill_args( $this->request_args[ 'data' ][ 'referenced' ] );
+			$args = $this->_fill_args( $this->request_args[ 'data' ][ 'referenced' ] );
 			$args += $this->request_args[ 'data' ][ 'manual' ];
 
 			if( $this->request_args[ 'method' ] == 'GET' ) {
 				$get_args = $args;
 			}
 
-			$dialog_url = $this->generate_api_url( $this->request_args[ 'service_name' ], $get_args );
+			$dialog_url = $this->_generate_api_url( $this->request_args[ 'service_name' ], $get_args );
 
 			header( "Location: " . $dialog_url );
 		}
@@ -197,8 +190,6 @@ abstract class OAuth {
 
 	/**
 	 * This method will send a request for giving a token then will redirect back to given URI
-	 *
-	 * @return void
 	 */
 	public function authorize_request_callback() {
 		$debug		= '';
@@ -213,7 +204,7 @@ abstract class OAuth {
 			$send_post = true;
 		}
 
-		$args = $this->fill_args( $this->token_args[ 'data' ][ 'referenced' ] );
+		$args = $this->_fill_args( $this->token_args[ 'data' ][ 'referenced' ] );
 
 		if( isset( $this->token_args[ 'data' ][ 'manual' ] ) && is_array( $this->token_args[ 'data' ][ 'manual' ] ) ) {
 			$args += $this->token_args[ 'data' ][ 'manual' ];
@@ -236,12 +227,10 @@ abstract class OAuth {
 
 
 	/**
-	 * @param $name
-	 * @param $value
-	 *
-	 * @return void
+	 * @param string $name
+	 * @param mixed $value
 	 */
-	function set_option( $name, $value ) {
+	public function set_option( $name, $value ) {
 
 		if( $this->get_option( $name ) !== false ) update_option( $this->settings_name . '_' . $name, $value );
 		else add_option( $this->settings_name . '_' . $name, $value );
@@ -250,10 +239,11 @@ abstract class OAuth {
 
 
 	/**
-	 * @param $name
+	 * @param string $name
+	 *
 	 * @return string|array
 	 */
-	function get_option( $name ) {
+	public function get_option( $name ) {
 		$option = get_option( $this->settings_name . '_' . $name, false );
 
 		return $option;
@@ -268,7 +258,10 @@ abstract class OAuth {
  	*/
 	public function check_token() {
 
-		if( ( !isset( $this->access_token ) ) || empty( $this->access_token ) ) {
+		if( isset( $this->access_token ) ) {
+			return true;
+		}
+		elseif( empty( $this->access_token ) ) {
 			$this->access_token = $this->get_option( 'access_token', null );
 
 			if( empty( $this->access_token ) ) return false;
@@ -286,7 +279,7 @@ abstract class OAuth {
  	*
  	* @return string|bool
  	*/
-	function get_token() {
+	public function get_token() {
 
 		if( $this->check_token() ) {
 	 		return $this->access_token;
@@ -299,8 +292,6 @@ abstract class OAuth {
 
 	/**
 	* @param string $access_token
-	*
-	* @return void
 	*/
 	public function set_token( $access_token ) {
 
@@ -313,12 +304,14 @@ abstract class OAuth {
 
 
 	/**
- 	* @param $args
+ 	* @param array $args
  	*
  	* @return array
  	*/
-	protected function fill_args( $args ) {
+	protected function _fill_args( $args ) {
 		$new_args = [];
+
+		if( !is_array( $args ) ) return false;
 
 		foreach( $args as $arg ) {
 
@@ -363,7 +356,11 @@ abstract class OAuth {
 	}
 
 
-
+	/**
+	 * Checks whether the auth process has occurred.
+	 *
+	 * @return bool
+	 */
 	public function authorize_control() {
 
 		if( $this->get_token() !== false ) {
