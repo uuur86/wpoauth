@@ -1,2 +1,2 @@
-# wpoauth
-OAuth API connector for wordpress
+# WordPress Oauth Library
+OAuth API connector for your WordPress plugin or theme projects
